@@ -13,6 +13,10 @@ class ZlibConan(ConanFile):
     license = "Zlib"
     exports_sources = "cmake-modules/*"
 
+    def __init__(self, output, runner, user=None, channel=None):
+        super(ZlibConan, self).__init__(output, runner, user, channel)
+        self.variants = []
+
     # download zlib sources
     def source(self):
         url = "https://zlib.net/zlib%s.zip" % self.version.replace(".","")
@@ -38,6 +42,22 @@ class ZlibConan(ConanFile):
             else:
                 cmake.definitions["IOS_PLATFORM"] = "OS"
 
+            # define all architectures for ios fat library
+            if "arm" in self.settings.arch:
+                self.variants = ["armv7", "armv7s", "armv8"]
+
+            # apply build config for all defined architectures
+            if len(self.variants) > 0:
+                archs = ""
+                for i in range(0, len(self.variants)):
+                    if i == 0:
+                        archs = tools.to_apple_arch(self.variants[i])
+                    else:
+                        archs += ";" + tools.to_apple_arch(self.variants[i])
+                cmake.definitions["CMAKE_OSX_ARCHITECTURES"] = archs
+            else:
+                cmake.definitions["CMAKE_OSX_ARCHITECTURES"] = tools.to_apple_arch(self.settings.arch)
+
         if self.settings.os == "Macos":
             cmake.definitions["CMAKE_OSX_ARCHITECTURES"] = tools.to_apple_arch(self.settings.arch)
 
@@ -49,43 +69,37 @@ class ZlibConan(ConanFile):
 
         if self.settings.os == "Android":
             # delete shared artifacts for static builds and the static library for shared builds
-            if self.options.shared == False:
-                os.remove('%s/lib/libz.so' % self.package_folder)
-            else:
+            if self.options.shared:
                 os.remove('%s/lib/libz.a' % self.package_folder)
+            else:
+                os.remove('%s/lib/libz.so' % self.package_folder)
 
         if self.settings.os == "iOS":
             # delete shared artifacts for static builds and the static library for shared builds
-            if self.options.shared == False:
+            if self.options.shared:
+                # delete static library
+                os.remove('%s/lib/libz.a' % self.package_folder)
+            else:
                 # delete dynamic library
                 [os.remove(os.path.join(lib_dir,f)) for f in os.listdir(lib_dir) if f.endswith(".dylib")]
                 static_lib = os.path.join(lib_dir,"libz.a")
                 self.run("xcrun ranlib %s" % static_lib)
-                # thin the library (remove all other archs)
-                self.run("lipo -extract %s %s -output %s" % (tools.to_apple_arch(self.settings.arch), static_lib, static_lib))
-            else:
-                # delete static library
-                os.remove('%s/lib/libz.a' % self.package_folder)
-                # thin the library (remove all other archs)
-                for f in os.listdir(lib_dir):
-                    if f.endswith(".dylib") and os.path.isfile(os.path.join(lib_dir,f)) and not os.path.islink(os.path.join(lib_dir,f)):
-                        self.run("lipo -extract %s %s -output %s" % (tools.to_apple_arch(self.settings.arch), os.path.join(lib_dir,f), os.path.join(lib_dir,f)))
-
+                
         if self.settings.os == "Linux":
             # delete shared artifacts for static builds and the static library for shared builds
-            if self.options.shared == False:
+            if self.options.shared:
+                os.remove('%s/lib/libz.a' % self.package_folder)
+            else:
                 for f in os.listdir(lib_dir):
                     if f.startswith("libz.so"):       
                         os.remove(os.path.join(lib_dir,f))
-            else:
-                os.remove('%s/lib/libz.a' % self.package_folder)
 
         if self.settings.os == "Macos":
             # delete shared artifacts for static builds and the static library for shared builds
-            if self.options.shared == False:
-                [os.remove(os.path.join(lib_dir,f)) for f in os.listdir(lib_dir) if f.endswith(".dylib")]
-            else:
+            if self.options.shared:
                 os.remove('%s/lib/libz.a' % self.package_folder)
+            else:
+                [os.remove(os.path.join(lib_dir,f)) for f in os.listdir(lib_dir) if f.endswith(".dylib")]
 
         if self.settings.os == "Windows":
             libname = "zlib"
@@ -95,12 +109,12 @@ class ZlibConan(ConanFile):
                 static_libname = "zlibstaticd"
 
             # delete shared artifacts for static builds and the static library for shared builds
-            if self.options.shared == False:
+            if self.options.shared:
+                os.remove('%s/lib/%s.lib' % (self.package_folder, static_libname))
+            else:
                 os.remove('%s/bin/%s.dll' % (self.package_folder, libname))
                 os.remove('%s/lib/%s.lib' % (self.package_folder, libname))
                 os.rename('%s/lib/%s.lib' % (self.package_folder, static_libname), '%s/lib/%s.lib' % (self.package_folder, libname))
-            else:
-                os.remove('%s/lib/%s.lib' % (self.package_folder, static_libname))
 
     def package(self):
         self.copy("*", dst="include", src='include')
@@ -113,6 +127,10 @@ class ZlibConan(ConanFile):
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
         self.cpp_info.includedirs = ['include']
+
+    def package_id(self):
+        if "arm" in self.settings.arch and self.settings.os == "iOS":
+            self.info.settings.arch = "AnyARM"
 
     def config_options(self):
         # remove android specific option for all other platforms
