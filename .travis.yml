@@ -1,0 +1,150 @@
+
+# C++ project
+language: cpp
+
+# Use Ubuntu 16.04 (Xenial)
+dist: xenial
+
+# Only build master and tags
+if: branch = master OR tag IS present
+
+git:
+    submodules: true
+
+env:
+  global:
+    - BINTRAY_USER=manromen
+    # BINTRAY_KEY
+    - secure: "Q1aimVBFNZVfIXz7uZeXt4bYqwNkYOneLvbkHi0cCeJumsBy/Tddy3rrzaT3zkLl2NlGrpT2BxxgddJCW8lQMk6329KY+nQhWw9tm3a8GNMnzWOe4PE4xDgCWvhH833P+dhHJCHP4fuxfqX7nBOugtbv2AS+YS2eHrqHXJlLPmErP9RmUZGTrurl7ol0r/0c+hRusXXCvbCws0na49k+qeU/J4g6QDBBFuFTfvP+ZvgklzQjDpB5BydoJqpEq0/scTcZG9k+GEv5qcn/SBq/znS4Em/kZtVhnG/s7Xtflrce2A15hyENQfXMUDrwhBOK1N2gqgljGe+V+RHHzzCg6kwsaBGbvYisSM2Aln8YtrGGeYAfbK0cATJgMlj8UCaIY56vwtK1hDFUoqzC+O0kRBKcBO4uSAFyv9HkBLW1WzxnxTo7xxjn7jYSln/R2mJEDQyZCuXO8Z0GVtJcpRV33Cgz6TjZdlXtwUtpoWNFbV758W3RLQMy0jyv+AvEDHvc1sOtZEQx7t9XeQbSKyQxRQT7in9KGgUgwpSbN0ypRrDv+dzR+wkTsOhma9QXa+ERA9rQXUmnctMRKt3W5rOqxoVWBQN2INJMhx/PZr/qZz/dXRbDlkQZlz7fNUd67eNk5HOcfKmEFOGD3qx8g/hABP6dL+SZskcIGkVMJaRJw4o="
+    - CONAN_REPOSITORY=https://api.bintray.com/conan/manromen/rgpaul
+    - CONAN_REPOSITORY_NAME=rgpaul
+    - CONAN_USER=rgpaul
+    - CONAN_CHANNEL=stable
+    - LIBRARY_VERSION=1.2.11
+
+### before installing deps
+before_install:
+  # Download Android NDK from Google
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TARGET_PLATFORM" == "android" ]]; then
+      curl -sSOL "https://dl.google.com/android/repository/android-ndk-${TRAVIS_ANDROID_NDK_VERSION}-linux-x86_64.zip";
+      unzip -q -o android-ndk-${TRAVIS_ANDROID_NDK_VERSION}-linux-x86_64.zip;
+    fi
+
+### install deps
+install:
+
+  # Install conan (windows)
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+      choco install python3;
+      choco install conan;
+    fi
+
+  # Install conan (linux / macos)
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] || [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      pip3 install conan;
+    fi
+
+  # Add conan repository and apply conan config
+  - conan remote add ${CONAN_REPOSITORY_NAME} ${CONAN_REPOSITORY}
+  - conan config install ${TRAVIS_BUILD_DIR}/.travis/conan/config.zip
+
+  # login to conan
+  - conan user -p "$BINTRAY_KEY" -r ${CONAN_REPOSITORY_NAME} ${BINTRAY_USER}
+
+### build script
+script:
+  # show OS/compiler version
+  - uname -a
+
+  # make sure CXX is correctly set
+  - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+
+  # macOS Builds
+  - if [ "$TARGET_PLATFORM" == "macos" ]; then
+      export MACOS_SDK_VERSION=$(xcodebuild -showsdks | grep macosx | awk '{print $4}' | sed 's/[^0-9,\.]*//g');
+      echo "macOS SDK ${MACOS_SDK_VERSION}";
+      conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Macos -s os.version=${MACOS_SDK_VERSION} -s arch=${TARGET_ARCH} -s build_type=${TARGET_BUILD_TYPE} -o shared=False;
+    fi
+
+  # iOS Builds
+  - if [ "$TARGET_PLATFORM" == "ios" ]; then
+      export IOS_SDK_VERSION=$(xcodebuild -showsdks | grep iphoneos | awk '{print $4}' | sed 's/[^0-9,\.]*//g');
+      echo "iOS SDK ${IOS_SDK_VERSION}";
+      
+      conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=iOS -s os.version=${IOS_SDK_VERSION} -s arch=${TARGET_ARCH} -s build_type=${TARGET_BUILD_TYPE} -o shared=False;
+    fi
+
+  # Windows Builds
+  - if [ "$TARGET_PLATFORM" == "windows" ]; then
+      conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Windows -s compiler="Visual Studio" -s compiler.runtime=MT -s arch=${TARGET_ARCH} -s build_type=${TARGET_BUILD_TYPE} -o shared=False;
+    fi
+
+deploy:
+  provider: script
+  script: bash .travis/conan-deploy.sh
+  on:
+    tags: true
+    all_branches: true
+
+### build matrix
+matrix:
+  include:
+      
+    # iOS - Release
+    - os: osx
+      osx_image: xcode10.2
+      compiler: clang
+      env:
+        - TARGET_PLATFORM=ios
+        - TARGET_ARCH=armv8
+        - TARGET_BUILD_TYPE=Release
+
+    # iOS - Debug
+    - os: osx
+      osx_image: xcode10.2
+      compiler: clang
+      env:
+        - TARGET_PLATFORM=ios
+        - TARGET_ARCH=armv8
+        - TARGET_BUILD_TYPE=Debug
+
+    # iOS - Simulator
+    - os: osx
+      osx_image: xcode10.2
+      compiler: clang
+      env:
+        - TARGET_PLATFORM=ios
+        - TARGET_ARCH=x86_64
+        - TARGET_BUILD_TYPE=Debug
+
+    # macOS - Release
+    - os: osx
+      osx_image: xcode10.2
+      compiler: clang
+      env:
+        - TARGET_PLATFORM=macos
+        - TARGET_ARCH=x86_64
+        - TARGET_BUILD_TYPE=Release
+
+    # macOS - Debug
+    - os: osx
+      osx_image: xcode10.2
+      compiler: clang
+      env:
+        - TARGET_PLATFORM=macos
+        - TARGET_ARCH=x86_64
+        - TARGET_BUILD_TYPE=Debug
+
+    # Windows - Debug
+    # - os: windows
+      
+      # TODO: remove filter_secrets - for now we have to disable it due to the following issue:
+      # https://travis-ci.community/t/current-known-issues-please-read-this-before-posting-a-new-topic/264/10
+      # filter_secrets: false
+      # env: 
+        ## - TRAVIS_OS_NAME=windows
+        ## - PATH=/c/Python37:/c/Python37/Scripts:$PATH
+        # - PATH=c:\python37:c:\python37\Scripts:$PATH
+        # - TARGET_PLATFORM=windows
+        # - TARGET_ARCH=x86_64
+        # - TARGET_BUILD_TYPE=Debug
