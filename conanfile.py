@@ -13,10 +13,6 @@ class ZlibConan(ConanFile):
     license = "Zlib"
     exports_sources = "cmake-modules/*"
 
-    def __init__(self, output, runner, user=None, channel=None):
-        super(ZlibConan, self).__init__(output, runner, user, channel)
-        self.variants = []
-
     # download zlib sources
     def source(self):
         url = "https://zlib.net/zlib%s.zip" % self.version.replace(".","")
@@ -45,6 +41,8 @@ class ZlibConan(ConanFile):
             # define all architectures for ios fat library
             if "arm" in self.settings.arch:
                 self.variants = ["armv7", "armv7s", "armv8"]
+            else:
+                self.variants = []
 
             # apply build config for all defined architectures
             if len(self.variants) > 0:
