@@ -35,6 +35,7 @@ install:
   # set protocol to tls version 1.2
   - ps: '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12'
   
+  - ps: python -m pip install --upgrade pip
   - ps: pip install conan
 
 build_script:
