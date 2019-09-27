@@ -25,39 +25,13 @@ class ZlibConan(ConanFile):
         cmake.verbose = True
 
         if self.settings.os == "Android":
-            cmake.definitions["CMAKE_SYSTEM_VERSION"] = self.settings.os.api_level
-            cmake.definitions["CMAKE_ANDROID_NDK"] = os.environ["ANDROID_NDK_PATH"]
-            cmake.definitions["CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION"] = self.settings.compiler
-            cmake.definitions["CMAKE_ANDROID_STL_TYPE"] = self.options.android_stl_type
+            self.applyCmakeSettingsForAndroid(cmake)
 
         if self.settings.os == "iOS":
-            ios_toolchain = "cmake-modules/Toolchains/ios.toolchain.cmake"
-            cmake.definitions["CMAKE_TOOLCHAIN_FILE"] = ios_toolchain
-            if self.settings.arch == "x86" or self.settings.arch == "x86_64":
-                cmake.definitions["IOS_PLATFORM"] = "SIMULATOR"
-            else:
-                cmake.definitions["IOS_PLATFORM"] = "OS"
-
-            # define all architectures for ios fat library
-            if "arm" in self.settings.arch:
-                self.variants = ["armv7", "armv7s", "armv8"]
-            else:
-                self.variants = []
-
-            # apply build config for all defined architectures
-            if len(self.variants) > 0:
-                archs = ""
-                for i in range(0, len(self.variants)):
-                    if i == 0:
-                        archs = tools.to_apple_arch(self.variants[i])
-                    else:
-                        archs += ";" + tools.to_apple_arch(self.variants[i])
-                cmake.definitions["CMAKE_OSX_ARCHITECTURES"] = archs
-            else:
-                cmake.definitions["CMAKE_OSX_ARCHITECTURES"] = tools.to_apple_arch(self.settings.arch)
+            self.applyCmakeSettingsForiOS(cmake)
 
         if self.settings.os == "Macos":
-            cmake.definitions["CMAKE_OSX_ARCHITECTURES"] = tools.to_apple_arch(self.settings.arch)
+            self.applyCmakeSettingsFormacOS(cmake)
 
         cmake.configure(source_folder=zlib_folder)
         cmake.build()
@@ -80,8 +54,6 @@ class ZlibConan(ConanFile):
             else:
                 # delete dynamic library
                 [os.remove(os.path.join(lib_dir,f)) for f in os.listdir(lib_dir) if f.endswith(".dylib")]
-                static_lib = os.path.join(lib_dir,"libz.a")
-                self.run("xcrun ranlib %s" % static_lib)
                 
         if self.settings.os == "Linux":
             # delete shared artifacts for static builds and the static library for shared builds
@@ -113,6 +85,48 @@ class ZlibConan(ConanFile):
                 os.remove('%s/bin/%s.dll' % (self.package_folder, libname))
                 os.remove('%s/lib/%s.lib' % (self.package_folder, libname))
                 os.rename('%s/lib/%s.lib' % (self.package_folder, static_libname), '%s/lib/%s.lib' % (self.package_folder, libname))
+
+    def applyCmakeSettingsForAndroid(self, cmake):
+        android_toolchain = os.environ["ANDROID_NDK_PATH"] + "/build/cmake/android.toolchain.cmake"
+        cmake.definitions["CMAKE_SYSTEM_NAME"] = "Android"
+        cmake.definitions["CMAKE_TOOLCHAIN_FILE"] = android_toolchain
+        cmake.definitions["ANDROID_NDK"] = os.environ["ANDROID_NDK_PATH"]
+        cmake.definitions["ANDROID_ABI"] = tools.to_android_abi(self.settings.arch)
+        cmake.definitions["ANDROID_STL"] = self.options.android_stl_type
+        cmake.definitions["ANDROID_NATIVE_API_LEVEL"] = self.settings.os.api_level
+        cmake.definitions["ANDROID_TOOLCHAIN"] = "clang"
+
+    def applyCmakeSettingsForiOS(self, cmake):
+        ios_toolchain = "cmake-modules/Toolchains/ios.toolchain.cmake"
+        cmake.definitions["CMAKE_TOOLCHAIN_FILE"] = ios_toolchain
+        cmake.definitions["DEPLOYMENT_TARGET"] = "10.0"
+        variants = []
+
+        if self.settings.arch == "x86":
+            cmake.definitions["IOS_PLATFORM"] = "SIMULATOR"
+        elif self.settings.arch == "x86_64":
+            cmake.definitions["IOS_PLATFORM"] = "SIMULATOR64"
+        else:
+            cmake.definitions["IOS_PLATFORM"] = "OS"
+
+        # define all architectures for ios fat library
+        if "arm" in self.settings.arch:
+            variants = ["armv7", "armv7s", "armv8", "armv8.3"]
+
+        # apply build config for all defined architectures
+        if len(variants) > 0:
+            archs = ""
+            for i in range(0, len(variants)):
+                if i == 0:
+                    archs = tools.to_apple_arch(variants[i])
+                else:
+                    archs += ";" + tools.to_apple_arch(variants[i])
+            cmake.definitions["ARCHS"] = archs
+        else:
+            cmake.definitions["ARCHS"] = tools.to_apple_arch(self.settings.arch)
+
+    def applyCmakeSettingsFormacOS(self, cmake):
+        cmake.definitions["CMAKE_OSX_ARCHITECTURES"] = tools.to_apple_arch(self.settings.arch)
 
     def package(self):
         self.copy("*", dst="include", src='include')
