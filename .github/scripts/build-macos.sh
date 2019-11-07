@@ -26,5 +26,5 @@ declare BUILD_TYPE=$2
 export MACOS_SDK_VERSION=$(xcodebuild -showsdks | grep " macosx" | awk '{print $4}' | sed 's/[^0-9,\.]*//g');
 echo "macOS SDK ${MACOS_SDK_VERSION}";
 
-conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Macos \
+conan create . ${CONAN_PACKAGE_NAME}/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Macos \
     -s os.version=${MACOS_SDK_VERSION} -s arch=$ARCH -s build_type=$BUILD_TYPE -o shared=False;

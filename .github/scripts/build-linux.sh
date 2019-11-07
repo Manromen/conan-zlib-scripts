@@ -27,5 +27,5 @@ if [ "${GITHUB_OS_NAME}" == "linux" ]; then
     source ~/.profile
 fi
 
-conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Linux -s arch=$ARCH \
+conan create . ${CONAN_PACKAGE_NAME}/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Linux -s arch=$ARCH \
     -s build_type=$BUILD_TYPE -o shared=False;

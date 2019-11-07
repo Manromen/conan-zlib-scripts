@@ -22,4 +22,5 @@
 & conan user -p "${env:BINTRAY_KEY}" -r "${env:CONAN_REPOSITORY_NAME}" "${env:BINTRAY_USER}"
 
 # upload all related packages
-& conan upload "*@${env:CONAN_USER}/${env:CONAN_CHANNEL}" -r "${env:CONAN_REPOSITORY_NAME}" --all --confirm
+& conan upload "${env:CONAN_PACKAGE_NAME}/${env:LIBRARY_VERSION}@${env:CONAN_USER}/${env:CONAN_CHANNEL}" `
+    -r "${env:CONAN_REPOSITORY_NAME}"  --all --confirm

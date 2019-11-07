@@ -117,7 +117,7 @@ function createConanPackage()
     local api_level=$2
     local build_type=$3
 
-    conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Android \
+    conan create . ${CONAN_PACKAGE_NAME}/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Android \
         -s os.api_level=${api_level} -s compiler=${TOOLCHAIN_VERSION} -s compiler.version=${COMPILER_VERSION} \
         -s compiler.libcxx=${COMPILER_LIBCXX} -s build_type=${build_type} -o android_ndk=${NDK_VERSION} \
         -o android_stl_type=${STL_TYPE} -s arch=${arch} -o shared=False

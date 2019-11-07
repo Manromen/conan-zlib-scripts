@@ -28,4 +28,5 @@ fi
 conan user -p "${BINTRAY_KEY}" -r "${CONAN_REPOSITORY_NAME}" "${BINTRAY_USER}"
 
 # upload all related packages
-conan upload "*@${CONAN_USER}/${CONAN_CHANNEL}" -r "${CONAN_REPOSITORY_NAME}" --all --confirm
+conan upload "${CONAN_PACKAGE_NAME}/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL}" -r "${CONAN_REPOSITORY_NAME}" \
+    --all --confirm

@@ -4,6 +4,7 @@ env:
   BINTRAY_USER: manromen
   CONAN_REPOSITORY: https://api.bintray.com/conan/manromen/rgpaul
   CONAN_REPOSITORY_NAME: rgpaul
+  CONAN_PACKAGE_NAME: zlib
   CONAN_USER: rgpaul
   CONAN_CHANNEL: stable
 
