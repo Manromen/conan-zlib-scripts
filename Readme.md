@@ -8,8 +8,8 @@
 
 This repository contains the conan receipe that is used to build the zlib packages at [rgpaul bintray](https://bintray.com/manromen/rgpaul).
 
-For Infos about the zlib library please visit [zlib.net](https://zlib.net). 
-The library is licensed under the [zlib License](https://zlib.net/zlib_license.html). 
+For Infos about the zlib library please visit [zlib.net](https://zlib.net).  
+The library is licensed under the [zlib License](https://zlib.net/zlib_license.html).  
 This repository is licensed under the [MIT License](LICENSE).
 
 ## Android
