@@ -20,32 +20,27 @@
 
 set -e
 
-#=======================================================================================================================
-# settings
+declare ABSOLUTE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-declare LIBRARY_VERSION=1.2.11
-declare CONAN_USER=rgpaul
-declare CONAN_CHANNEL=stable
+# Install conan (windows)
+if [[ "$GITHUB_OS_NAME" == "windows" ]]; then
+    choco install python3;
+    choco install conan;
 
-declare IOS_SDK_VERSION=$(xcodebuild -showsdks | grep iphoneos | awk '{print $4}' | sed 's/[^0-9,\.]*//g')
+# Install conan (linux)
+elif [[ "$GITHUB_OS_NAME" == "linux" ]]; then
+    pip3 install setuptools wheel --user
+    pip3 install conan --user
+    source ~/.profile
 
-#=======================================================================================================================
-# create conan package
+# Install conan (macos)
+elif [[ "$GITHUB_OS_NAME" == "macos" ]]; then
+    pip3 install conan;
+fi
 
-function createConanPackage()
-{
-    local arch=$1
-    local build_type=$2
+# Add conan repository and apply conan config
+conan remote add ${CONAN_REPOSITORY_NAME} ${CONAN_REPOSITORY}
+conan config install ${ABSOLUTE_DIR}/../conan/config.zip
 
-    conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=iOS -s os.version=${IOS_SDK_VERSION} \
-        -s arch=${arch} -s build_type=${build_type} -o shared=False
-}
-
-#=======================================================================================================================
-# create packages for all architectures and build types
-
-# iOS (any arm arch will build fat libraries with armv7, armv7s, armv8 and armv8.3 and set arch to 'AnyARM')
-createConanPackage armv8 Release
-createConanPackage armv8 Debug
-# SIMULATOR
-createConanPackage x86_64 Debug
+# login to conan
+conan user -p "${BINTRAY_KEY}" -r ${CONAN_REPOSITORY_NAME} ${BINTRAY_USER}

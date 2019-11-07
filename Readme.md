@@ -1,5 +1,11 @@
 # Conan zlib script
 
+![Android status](https://github.com/rgpaul/conan-zlib-scripts/workflows/Android/badge.svg)
+![iOS status](https://github.com/rgpaul/conan-zlib-scripts/workflows/iOS/badge.svg)
+![Linux status](https://github.com/rgpaul/conan-zlib-scripts/workflows/Linux/badge.svg)
+![macOS status](https://github.com/rgpaul/conan-zlib-scripts/workflows/macOS/badge.svg)
+![Windows status](https://github.com/rgpaul/conan-zlib-scripts/workflows/Windows/badge.svg)
+
 This repository contains the conan receipe that is used to build the zlib packages at [rgpaul bintray](https://bintray.com/manromen/rgpaul).
 
 For Infos about the zlib library please visit [zlib.net](https://zlib.net). 

@@ -1,8 +1,8 @@
-﻿#!/usr/bin/env powershell
+#!/usr/bin/env powershell
 # ----------------------------------------------------------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2018-2019 Ralph-Gordon Paul. All rights reserved.
+# Copyright (c) 2019 Ralph-Gordon Paul. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the "Software"), to deal in the Software without restriction, including without limitation the 
@@ -18,19 +18,16 @@
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 # ----------------------------------------------------------------------------------------------------------------------
 
-#=======================================================================================================================
-# settings
-
-$LIBRARY_VERSION = "1.2.11"
-$CONAN_USER = "rgpaul"
-$CONAN_CHANNEL = "stable"
+param(
+    [string]$ARCH,
+    [string]$BUILD_TYPE
+)
 
 #=======================================================================================================================
 # create conan package
 
-function CreateConanPackage($arch, $build_type)
+function createConanPackage($arch, $build_type)
 {
-    Push-Location ${PSScriptRoot}
     $runtime = "MT"
 
     if ($build_type.equals("Debug"))
@@ -38,24 +35,11 @@ function CreateConanPackage($arch, $build_type)
         $runtime = "MTd"
     }
 
-    # Visual Studio Compiler Versions:
-    # Visual Studio 12 2013
-    # Visual Studio 14 2015
-    # Visual Studio 15 2017
-
-    & conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Windows -s compiler="Visual Studio" `
-        -s compiler.version=15 -s compiler.runtime=${runtime} -s arch=${arch} -s build_type=${build_type} `
-        -o shared=False
-
-    Pop-Location
+    conan create . zlib/${env:LIBRARY_VERSION}@${env:CONAN_USER}/${env:CONAN_CHANNEL} -s os=Windows `
+        -s compiler="Visual Studio" -s compiler.runtime=$runtime -s arch=${arch} -s build_type=${build_type} -o shared=False
 }
 
 #=======================================================================================================================
 # create packages for all architectures and build types
 
-CreateConanPackage x86 Release
-CreateConanPackage x86 Debug
-CreateConanPackage x86_64 Release
-CreateConanPackage x86_64 Debug
-CreateConanPackage armv7 Release
-CreateConanPackage armv7 Debug
+createConanPackage $ARCH $BUILD_TYPE

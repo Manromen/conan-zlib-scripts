@@ -20,30 +20,11 @@
 
 set -e
 
-#=======================================================================================================================
-# settings
+declare ARCH=$1
+declare BUILD_TYPE=$2
 
-declare LIBRARY_VERSION=1.2.11
-declare CONAN_USER=rgpaul
-declare CONAN_CHANNEL=stable
+export MACOS_SDK_VERSION=$(xcodebuild -showsdks | grep " macosx" | awk '{print $4}' | sed 's/[^0-9,\.]*//g');
+echo "macOS SDK ${MACOS_SDK_VERSION}";
 
-#=======================================================================================================================
-# create conan package
-
-function createConanPackage()
-{
-    local arch=$1
-    local build_type=$2
-
-    conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Linux -s arch=${arch} \
-        -s build_type=${build_type} -o shared=False
-}
-
-#=======================================================================================================================
-# create packages for all architectures and build types
-
-createConanPackage x86_64 Release
-createConanPackage x86_64 Debug
-createConanPackage x86 Release
-createConanPackage x86 Debug
-
+conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Macos \
+    -s os.version=${MACOS_SDK_VERSION} -s arch=$ARCH -s build_type=$BUILD_TYPE -o shared=False;

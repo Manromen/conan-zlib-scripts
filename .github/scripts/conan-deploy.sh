@@ -20,32 +20,12 @@
 
 set -e
 
-#=======================================================================================================================
-# settings
+if [ "${GITHUB_OS_NAME}" == "linux" ]; then
+    source ~/.profile
+fi
 
-declare LIBRARY_VERSION=1.2.11
-declare CONAN_USER=rgpaul
-declare CONAN_CHANNEL=stable
+# login to conan bintray
+conan user -p "${BINTRAY_KEY}" -r "${CONAN_REPOSITORY_NAME}" "${BINTRAY_USER}"
 
-declare MACOS_SDK_VERSION=$(xcodebuild -showsdks | grep macosx | awk '{print $4}' | sed 's/[^0-9,\.]*//g')
-
-#=======================================================================================================================
-# create conan package
-
-function createConanPackage()
-{
-    local arch=$1
-    local build_type=$2
-
-    conan create . zlib/${LIBRARY_VERSION}@${CONAN_USER}/${CONAN_CHANNEL} -s os=Macos \
-        -s os.version=${MACOS_SDK_VERSION} -s arch=${arch} -s build_type=${build_type} -o shared=False
-}
-
-#=======================================================================================================================
-# create packages for all architectures and build types
-
-createConanPackage x86_64 Release
-createConanPackage x86_64 Debug
-
-# arch x86 is deprecated on macos, so we won't build for x86
-
+# upload all related packages
+conan upload "*@${CONAN_USER}/${CONAN_CHANNEL}" -r "${CONAN_REPOSITORY_NAME}" --all --confirm
